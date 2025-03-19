@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flower_ai_api/classifier/classifier_category.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
@@ -6,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../classifier/classifier.dart';
 import '../models/history_entry.dart';
+import '../huggingface/hugging_face_service.dart';
+import 'dart:convert';
 import '../providers/history_provider.dart';
 import '../providers/model_provider.dart';
 import '../styles.dart';
@@ -48,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final modelProvider = Provider.of<ModelProvider>(context, listen: false);
-      final modelInfo = modelProvider.selectedModel;
+      final modelInfo = modelProvider.selectedLocalModel;
 
       debugPrint('Starting classifier loading process');
       debugPrint('Labels file path: ${modelInfo.labelsFileName}');
@@ -312,67 +315,120 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _analyzeImage(File image) async {
-    // Load classifier if not already loaded
-    if (_classifier == null) {
-      await _loadClassifier(context);
-    }
+    final modelProvider = Provider.of<ModelProvider>(context, listen: false);
 
-    if (_classifier == null) {
-      debugPrint('Classifier is not initialized');
-      return;
-    }
+    if (modelProvider.modelType == ModelType.local) {
+      // Local model analysis
+      if (_classifier == null) {
+        await _loadClassifier(context);
+      }
 
-    _setAnalyzing(true);
+      if (_classifier == null) {
+        debugPrint('Classifier is not initialized');
+        return;
+      }
 
-    try {
-      final imageInput = img.decodeImage(image.readAsBytesSync())!;
-      final resultCategories = _classifier!.predictAll(imageInput);
-      final topCategory = resultCategories.first;
+      _setAnalyzing(true);
 
-      final label = topCategory.label;
-      final accuracy = topCategory.score;
+      try {
+        final imageInput = img.decodeImage(image.readAsBytesSync())!;
+        final resultCategories = _classifier!.predictAll(imageInput);
+        final topCategory = resultCategories.first;
 
-      setState(() {
-        _setAnalyzing(false);
-      });
+        final label = topCategory.label;
+        final accuracy = topCategory.score;
 
-      // Add to history
-      final modelProvider = Provider.of<ModelProvider>(context, listen: false);
-      final historyProvider = Provider.of<HistoryProvider>(
-        context,
-        listen: false,
-      );
+        setState(() {
+          _setAnalyzing(false);
+        });
 
-      historyEntry = HistoryEntry(
-        id: const Uuid().v4(),
-        imagePath: image.path,
-        label: label,
-        accuracy: accuracy,
-        allResults: resultCategories,
-        timestamp: DateTime.now(),
-        modelName: modelProvider.selectedModel.name,
-      );
+        // Add to history
+        final historyProvider = Provider.of<HistoryProvider>(
+          context,
+          listen: false,
+        );
 
-      await historyProvider.addEntry(historyEntry);
+        historyEntry = HistoryEntry(
+          id: const Uuid().v4(),
+          imagePath: image.path,
+          label: label,
+          accuracy: accuracy,
+          allResults: resultCategories,
+          timestamp: DateTime.now(),
+          modelName: modelProvider.selectedLocalModel.name,
+        );
 
-      // Navigate to result screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => ResultScreen(
-                label: label,
-                accuracy: accuracy,
-                allResults: resultCategories,
-                imagePath: image.path,
-              ),
-        ),
-      );
-    } catch (e) {
-      debugPrint('Error during image analysis: $e');
-      setState(() {
-        _setAnalyzing(false);
-      });
+        await historyProvider.addEntry(historyEntry);
+
+        // Navigate to result screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ResultScreen(
+              label: label,
+              accuracy: accuracy,
+              allResults: resultCategories,
+              imagePath: image.path,
+            ),
+          ),
+        );
+      } catch (e) {
+        debugPrint('Error during image analysis: $e');
+        setState(() {
+          _setAnalyzing(false);
+        });
+      }
+    } else if (modelProvider.modelType == ModelType.online) {
+      // Online model analysis
+      _setAnalyzing(true);
+
+      try {
+        final base64Image = base64Encode(image.readAsBytesSync());
+        final apiUrl = modelProvider.selectedOnlineModel.url;
+        final huggingFaceService = HuggingFaceService();
+
+        final prediction = await huggingFaceService.makePrediction(base64Image, apiUrl);
+
+        final label = prediction['data'][0]['label'];
+        final confidence = prediction['data'][0]['confidences'][0]['confidence'];
+
+        setState(() {
+          _setAnalyzing(false);
+        });
+
+        // Add to history
+        final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+
+        historyEntry = HistoryEntry(
+          id: const Uuid().v4(),
+          imagePath: image.path,
+          label: label,
+          accuracy: confidence,
+          allResults: [ClassifierCategory(label, confidence)],
+          timestamp: DateTime.now(),
+          modelName: modelProvider.selectedOnlineModel.name,
+        );
+
+        await historyProvider.addEntry(historyEntry);
+
+        // Navigate to result screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ResultScreen(
+              label: label,
+              accuracy: confidence,
+              allResults: [ClassifierCategory(label, confidence)],
+              imagePath: image.path,
+            ),
+          ),
+        );
+      } catch (e) {
+        debugPrint('Error during image analysis: $e');
+        setState(() {
+          _setAnalyzing(false);
+        });
+      }
     }
   }
 }

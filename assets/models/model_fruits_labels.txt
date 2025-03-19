@@ -1,0 +1,17 @@
+0 Apple
+1 Banana
+2 Carrot
+3 Cucumber
+4 Garlic
+5 Grapes
+6 Kiwi
+7 Lemon
+8 Lettuce
+9 Onion
+10 Orange
+11 Peas
+12 Potato
+13 Raddish
+14 Spinach
+15 Tomato
+16 Watermalon

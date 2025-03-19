@@ -2,13 +2,15 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-class ModelInfo {
+enum ModelType { local, online }
+
+class LocalModelInfo {
   final String name;
   final String modelFileName;
   final String labelsFileName;
   final String description;
 
-  ModelInfo({
+  LocalModelInfo({
     required this.name,
     required this.modelFileName,
     required this.labelsFileName,
@@ -17,29 +19,54 @@ class ModelInfo {
 
   @override
   String toString() {
-    return 'ModelInfo(name: $name, modelFileName: $modelFileName, labelsFileName: $labelsFileName, description: $description)';
+    return 'LocalModelInfo(name: $name, modelFileName: $modelFileName, labelsFileName: $labelsFileName, description: $description)';
+  }
+}
+
+class OnlineModelInfo {
+  final String name;
+  final String url;
+
+  OnlineModelInfo({required this.name, required this.url});
+
+  @override
+  String toString() {
+    return 'OnlineModelInfo(name: $name, url: $url)';
   }
 }
 
 class ModelProvider extends ChangeNotifier {
-  List<ModelInfo> _availableModels = [];
-  int _selectedModelIndex = 0;
-  bool _isLoading = true;
+  List<LocalModelInfo> _availableLocalModels = [];
+  int _selectedLocalModelIndex = 0;
 
-  List<ModelInfo> get availableModels => _availableModels;
-  ModelInfo get selectedModel => _availableModels[_selectedModelIndex];
-  int get selectedModelIndex => _selectedModelIndex;
+  List<OnlineModelInfo> _availableOnlineModels = [];
+  int _selectedOnlineModelIndex = 0;
+  bool _isLoading = true;
+  ModelType _modelType = ModelType.local;
+
+  List<LocalModelInfo> get availableLocalModels => _availableLocalModels;
+  LocalModelInfo get selectedLocalModel =>
+      _availableLocalModels[_selectedLocalModelIndex];
+  int get selectedLocalModelIndex => _selectedLocalModelIndex;
+
+  List<OnlineModelInfo> get availableOnlineModels => _availableOnlineModels;
+  OnlineModelInfo get selectedOnlineModel =>
+      _availableOnlineModels[_selectedOnlineModelIndex];
+  int get selectedOnlineModelIndex => _selectedOnlineModelIndex;
+
   bool get isLoading => _isLoading;
+  ModelType get modelType => _modelType;
 
   ModelProvider() {
-    _loadAvailableModels();
+    _loadAvailableLocalModels();
+    _loadAvailableOnlineModels();
   }
 
-  Future<void> _loadAvailableModels() async {
+  Future<void> _loadAvailableLocalModels() async {
     try {
       // Default model
-      _availableModels = [
-        ModelInfo(
+      _availableLocalModels = [
+        LocalModelInfo(
           name: 'Flower Model',
           modelFileName: 'model_fleur.tflite',
           labelsFileName: 'model_fleur_labels.txt',
@@ -49,27 +76,33 @@ class ModelProvider extends ChangeNotifier {
 
       // Scan the assets/models directory for additional models
       try {
-        final manifestContent = await rootBundle.loadString('AssetManifest.json');
+        final manifestContent = await rootBundle.loadString(
+          'AssetManifest.json',
+        );
         final Map<String, dynamic> manifestMap = Map.from(
-          manifestContent.isNotEmpty ? 
-          await json.decode(manifestContent) : {}
+          manifestContent.isNotEmpty ? await json.decode(manifestContent) : {},
         );
 
-        final modelFiles = manifestMap.keys
-            .where((String key) => key.startsWith('assets/models/') && key.endsWith('.tflite'))
-            .toList();
+        final modelFiles =
+            manifestMap.keys
+                .where(
+                  (String key) =>
+                      key.startsWith('assets/models/') &&
+                      key.endsWith('.tflite'),
+                )
+                .toList();
 
         for (final modelFile in modelFiles) {
           final modelName = modelFile.split('/').last.replaceAll('.tflite', '');
-          
+
           // Skip the default model which is already added
           if (modelName == 'model_fleur') continue;
-          
+
           // Check if there's a corresponding labels file
           final labelsFile = 'assets/models/${modelName}_labels.txt';
           if (manifestMap.containsKey(labelsFile)) {
-            _availableModels.add(
-              ModelInfo(
+            _availableLocalModels.add(
+              LocalModelInfo(
                 name: _formatModelName(modelName),
                 modelFileName: '$modelName.tflite',
                 labelsFileName: '${modelName}_labels.txt',
@@ -77,7 +110,7 @@ class ModelProvider extends ChangeNotifier {
               ),
             );
           }
-        debugPrint('Added custom TFLite model : $modelName');
+          debugPrint('Added custom TFLite model : $modelName');
         }
       } catch (e) {
         debugPrint('Error scanning for models: $e');
@@ -98,15 +131,70 @@ class ModelProvider extends ChangeNotifier {
         .replaceAll('_', ' ')
         .replaceAll('-', ' ')
         .split(' ')
-        .map((word) => word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1)}' : '')
+        .map(
+          (word) =>
+              word.isNotEmpty
+                  ? '${word[0].toUpperCase()}${word.substring(1)}'
+                  : '',
+        )
         .join(' ');
   }
 
-  void selectModel(int index) {
-    if (index >= 0 && index < _availableModels.length) {
-      _selectedModelIndex = index;
+  void setModelType(ModelType type) {
+    _modelType = type;
+    if (type == ModelType.local) {
+      selectLocalModel(_selectedLocalModelIndex);
+    }
+    if (type == ModelType.online) {
+      selectOnlineModel(_selectedOnlineModelIndex);
+    }
 
-      debugPrint("Current model changed to : ${selectedModel.name}");
+    notifyListeners();
+  }
+
+  void selectLocalModel(int index) {
+    if (index >= 0 && index < _availableLocalModels.length) {
+      _selectedLocalModelIndex = index;
+
+      debugPrint("Current model changed to : ${selectedLocalModel.name}");
+
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadAvailableOnlineModels() async {
+    try {
+      _availableOnlineModels = [
+        OnlineModelInfo(
+          name: "Animals Classifier",
+          url: "https://dielz-animals-classifier-demo.hf.space/call/predict",
+        ),
+        OnlineModelInfo(
+          name: "Pokémon first gen classifier",
+          url:
+              "https://vdcapriles-pokedex-classifier.hf.space/gradio_api/call/predict",
+        ),
+        OnlineModelInfo(
+          name: "Bark Texture Images",
+          url:
+              "https://eswardivi-bark-texture-images-classification.hf.space/gradio_api/call/predict",
+        ),
+      ];
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading models: $e');
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void selectOnlineModel(int index) {
+    if (index >= 0 && index < _availableOnlineModels.length) {
+      _selectedOnlineModelIndex = index;
+
+      debugPrint("Current model changed to : ${selectedOnlineModel.name}");
 
       notifyListeners();
     }

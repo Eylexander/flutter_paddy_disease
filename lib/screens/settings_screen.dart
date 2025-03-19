@@ -114,7 +114,7 @@ class SettingsScreen extends StatelessWidget {
                 );
               }
 
-              if (modelProvider.availableModels.isEmpty) {
+              if (modelProvider.availableLocalModels.isEmpty || modelProvider.availableOnlineModels.isEmpty) {
                 return const SizedBox.shrink();
               }
 
@@ -136,65 +136,142 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        'Current Model: ${modelProvider.selectedModel.name}',
-                        style: GoogleFonts.sora(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        modelProvider.selectedModel.description,
-                        style: GoogleFonts.sora(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (modelProvider.availableModels.length > 1) ...[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Select Model:',
-                              style: GoogleFonts.sora(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                modelProvider.setModelType(ModelType.local);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: modelProvider.modelType == ModelType.local
+                                    ? kPrimaryRed
+                                    : Colors.grey,
+                              ),
+                              child: Text(
+                                'Local Models',
+                                style: GoogleFonts.sora(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
-                            DropdownButton<int>(
-                              dropdownColor: Theme.of(context).colorScheme.surface,
-                              value: modelProvider.selectedModelIndex,
-                              items:
-                                  modelProvider.availableModels
-                                      .asMap()
-                                      .entries
-                                      .map((entry) {
-                                        int index = entry.key;
-                                        var model = entry.value;
-                                        return DropdownMenuItem<int>(
-                                          value: index,
-                                          child: Text(model.name),
-                                        );
-                                      })
-                                      .toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  modelProvider.selectModel(value);
-                                }
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                modelProvider.setModelType(ModelType.online);
                               },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: modelProvider.modelType == ModelType.online
+                                    ? kPrimaryRed
+                                    : Colors.grey,
+                              ),
+                              child: Text(
+                                'Online Models',
+                                style: GoogleFonts.sora(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
-                          ],
-                        ),
-                      ] else ...[
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (modelProvider.modelType == ModelType.local) ...[
                         Text(
-                          'Only one model available',
+                          'Current Model: ${modelProvider.selectedLocalModel.name}',
+                          style: GoogleFonts.sora(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          modelProvider.selectedLocalModel.description,
                           style: GoogleFonts.sora(
                             fontSize: 14,
-                            fontStyle: FontStyle.italic,
                             color: Colors.grey[600],
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (modelProvider.availableLocalModels.length > 1) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Select Local Model:',
+                                style: GoogleFonts.sora(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              DropdownButton<int>(
+                                dropdownColor: Theme.of(context).colorScheme.surface,
+                                value: modelProvider.selectedLocalModelIndex,
+                                items: modelProvider.availableLocalModels
+                                    .asMap()
+                                    .entries
+                                    .map((entry) {
+                                      int index = entry.key;
+                                      var model = entry.value;
+                                      return DropdownMenuItem<int>(
+                                        value: index,
+                                        child: Text(model.name),
+                                      );
+                                    })
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    modelProvider.selectLocalModel(value);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          Text(
+                            'Only one local model available',
+                            style: GoogleFonts.sora(
+                              fontSize: 14,
+                              fontStyle: FontStyle.italic,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ] else if (modelProvider.modelType == ModelType.online) ...[
+                        Text(
+                          'Select Online Model:',
+                          style: GoogleFonts.sora(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        DropdownButton<int>(
+                          dropdownColor: Theme.of(context).colorScheme.surface,
+                          value: modelProvider.selectedOnlineModelIndex,
+                          items: modelProvider.availableOnlineModels
+                              .asMap()
+                              .entries
+                              .map((entry) {
+                                int index = entry.key;
+                                var model = entry.value;
+                                return DropdownMenuItem<int>(
+                                  value: index,
+                                  child: Text(model.name),
+                                );
+                              })
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              modelProvider.selectOnlineModel(value);
+                            }
+                          },
                         ),
                       ],
                     ],

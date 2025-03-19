@@ -40,6 +40,10 @@ flutter:
         weight: 300
   
   assets:
+    - assets/models/model_fleur_labels.txt
+    - assets/models/model_fleur.tflite
+    - assets/models/model_fruits_labels.txt
+    - assets/models/model_fruits.tflite
     - assets/icon/icon.png
 
 flutter_launcher_icons:
