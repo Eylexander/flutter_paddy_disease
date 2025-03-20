@@ -178,36 +178,36 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         if (historyEntry != null)
-            ElevatedButton(
+          ElevatedButton(
             onPressed: () {
               if (_selectedImageFile != null) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                builder:
-                  (context) => ResultScreen(
-                    label: historyEntry.label,
-                    accuracy: historyEntry.accuracy,
-                    allResults: historyEntry.allResults,
-                    imagePath: historyEntry.imagePath,
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => ResultScreen(
+                          label: historyEntry.label,
+                          accuracy: historyEntry.accuracy,
+                          allResults: historyEntry.allResults,
+                          imagePath: historyEntry.imagePath,
+                        ),
                   ),
-                ),
-              );
+                );
               }
             },
             child: Column(
               children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(historyEntry.label, style: kResultTextStyle),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(
-                'Accuracy: ${(historyEntry.accuracy * 100).toStringAsFixed(2)}%',
-                style: kResultRatingTextStyle,
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(historyEntry.label, style: kResultTextStyle),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Accuracy: ${(historyEntry.accuracy * 100).toStringAsFixed(2)}%',
+                    style: kResultRatingTextStyle,
+                  ),
+                ),
               ],
             ),
           ),
@@ -316,8 +316,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _analyzeImage(File image) async {
     final modelProvider = Provider.of<ModelProvider>(context, listen: false);
-    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-
+    final historyProvider = Provider.of<HistoryProvider>(
+      context,
+      listen: false,
+    );
 
     if (modelProvider.modelType == ModelType.local) {
       // Local model analysis
@@ -355,24 +357,9 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         await historyProvider.addEntry(historyEntry);
-
-        // Navigate to result screen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ResultScreen(
-              label: label,
-              accuracy: accuracy,
-              allResults: resultCategories,
-              imagePath: image.path,
-            ),
-          ),
-        );
       } catch (e) {
         debugPrint('Error during image analysis: $e');
-        setState(() {
-          _setAnalyzing(false);
-        });
+        _setAnalyzing(false);
       }
     } else if (modelProvider.modelType == ModelType.online) {
       // Online model analysis
@@ -383,18 +370,19 @@ class _HomeScreenState extends State<HomeScreen> {
         final apiUrl = modelProvider.selectedOnlineModel.url;
         final huggingFaceService = HuggingFaceService();
 
-        final prediction = await huggingFaceService.makePrediction(base64Image, apiUrl);
+        final prediction = await huggingFaceService.makePrediction(
+          base64Image,
+          apiUrl,
+        );
 
         List<Map<String, dynamic>> predictions = [];
 
         if (modelProvider.selectedOnlineModelIndex == 0) {
           final label = prediction['data'][0]['label'];
-          final confidence = prediction['data'][0]['confidences'][0]['confidence'];
+          final confidence =
+              prediction['data'][0]['confidences'][0]['confidence'];
 
-          predictions.add({
-            "label": label,
-            "confidence": confidence,
-          });
+          predictions.add({"label": label, "confidence": confidence});
         } else if (modelProvider.selectedOnlineModelIndex == 1) {
           final regExp = RegExp(r"(\w+):\s([\d.]+)%");
           for (var match in regExp.allMatches(prediction['data'][0])) {
@@ -404,15 +392,16 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           }
         } else {
-          throw Exception('Invalid model index: ${modelProvider.selectedOnlineModelIndex}');
+          throw Exception(
+            'Invalid model index: ${modelProvider.selectedOnlineModelIndex}',
+          );
         }
 
-        setState(() {
-          _setAnalyzing(false);
-        });
+        _setAnalyzing(false);
 
-        final topPrediction = predictions.reduce((a, b) =>
-            a['confidence'] > b['confidence'] ? a : b);
+        final topPrediction = predictions.reduce(
+          (a, b) => a['confidence'] > b['confidence'] ? a : b,
+        );
         final label = topPrediction['label'];
         final confidence = topPrediction['confidence'];
 
@@ -421,33 +410,33 @@ class _HomeScreenState extends State<HomeScreen> {
           imagePath: image.path,
           label: label,
           accuracy: confidence,
-          allResults: predictions
-              .map((p) => ClassifierCategory(p['label'], p['confidence']))
-              .toList(),
+          allResults:
+              predictions
+                  .map((p) => ClassifierCategory(p['label'], p['confidence']))
+                  .toList(),
           timestamp: DateTime.now(),
           modelName: modelProvider.selectedOnlineModel.name,
         );
 
         await historyProvider.addEntry(historyEntry);
-
-        // Navigate to result screen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ResultScreen(
-              label: label,
-              accuracy: confidence,
-              allResults: [ClassifierCategory(label, confidence)],
-              imagePath: image.path,
-            ),
-          ),
-        );
       } catch (e) {
         debugPrint('Error during image analysis: $e');
-        setState(() {
-          _setAnalyzing(false);
-        });
+        _setAnalyzing(false);
       }
     }
+
+    // Navigate to result screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => ResultScreen(
+              label: historyEntry.label,
+              accuracy: historyEntry.accuracy,
+              allResults: historyEntry.allResults,
+              imagePath: historyEntry.imagePath,
+            ),
+      ),
+    );
   }
 }
