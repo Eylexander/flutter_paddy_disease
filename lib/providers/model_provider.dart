@@ -170,15 +170,10 @@ class ModelProvider extends ChangeNotifier {
           url: "https://dielz-animals-classifier-demo.hf.space/call/predict",
         ),
         OnlineModelInfo(
-          name: "Pokémon first gen classifier",
+          name: "Car logo classifier",
           url:
-              "https://vdcapriles-pokedex-classifier.hf.space/gradio_api/call/predict",
-        ),
-        OnlineModelInfo(
-          name: "Bark Texture Images",
-          url:
-              "https://eswardivi-bark-texture-images-classification.hf.space/gradio_api/call/predict",
-        ),
+              "https://markvosko-car-logo-classifier.hf.space/call/predict_image",
+        )
       ];
 
       _isLoading = false;

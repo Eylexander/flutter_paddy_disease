@@ -50,9 +50,9 @@ class HuggingFaceService {
 
       if (firstRequest.statusCode != 200) {
         debugPrint(
-            "Failed to upload image to imgbb: ${firstRequest.statusCode}\nResponse: ${firstRequest.body}");
+            "Failed to upload image to huggingface: ${firstRequest.statusCode}\nResponse: ${firstRequest.body}");
         throw Exception(
-            'Failed to upload image to imgbb: ${firstRequest.statusCode}\nResponse: ${firstRequest.body}');
+            'Failed to upload image to huggingface: ${firstRequest.statusCode}\nResponse: ${firstRequest.body}');
       }
 
       var res = jsonDecode(firstRequest.body);
@@ -67,17 +67,7 @@ class HuggingFaceService {
             .firstWhere((line) => line.startsWith('data: '))
             .replaceFirst('data: ', '"data": ');
 
-        var predictionData = jsonDecode('{$eventData}');
-
-        // Extract the label and confidence
-        var label = predictionData['data'][0]['label'];
-        var confidence =
-            predictionData['data'][0]['confidences'][0]['confidence'];
-
-        // Print the label and confidence
-        debugPrint('Label: $label, Confidence: $confidence');
-
-        return predictionData;
+        return jsonDecode('{$eventData}');
       } else {
         debugPrint(
             'Failed to get prediction result: ${secondRequest.statusCode}\nResponse: ${secondRequest.body}');

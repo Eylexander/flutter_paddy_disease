@@ -316,6 +316,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _analyzeImage(File image) async {
     final modelProvider = Provider.of<ModelProvider>(context, listen: false);
+    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+
 
     if (modelProvider.modelType == ModelType.local) {
       // Local model analysis
@@ -341,12 +343,6 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _setAnalyzing(false);
         });
-
-        // Add to history
-        final historyProvider = Provider.of<HistoryProvider>(
-          context,
-          listen: false,
-        );
 
         historyEntry = HistoryEntry(
           id: const Uuid().v4(),
@@ -389,22 +385,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final prediction = await huggingFaceService.makePrediction(base64Image, apiUrl);
 
-        final label = prediction['data'][0]['label'];
-        final confidence = prediction['data'][0]['confidences'][0]['confidence'];
+        List<Map<String, dynamic>> predictions = [];
+
+        if (modelProvider.selectedOnlineModelIndex == 0) {
+          final label = prediction['data'][0]['label'];
+          final confidence = prediction['data'][0]['confidences'][0]['confidence'];
+
+          predictions.add({
+            "label": label,
+            "confidence": confidence,
+          });
+        } else if (modelProvider.selectedOnlineModelIndex == 1) {
+          final regExp = RegExp(r"(\w+):\s([\d.]+)%");
+          for (var match in regExp.allMatches(prediction['data'][0])) {
+            predictions.add({
+              "label": match.group(1)!,
+              "confidence": double.parse(match.group(2)!) / 100,
+            });
+          }
+        } else {
+          throw Exception('Invalid model index: ${modelProvider.selectedOnlineModelIndex}');
+        }
 
         setState(() {
           _setAnalyzing(false);
         });
 
-        // Add to history
-        final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+        final topPrediction = predictions.reduce((a, b) =>
+            a['confidence'] > b['confidence'] ? a : b);
+        final label = topPrediction['label'];
+        final confidence = topPrediction['confidence'];
 
         historyEntry = HistoryEntry(
           id: const Uuid().v4(),
           imagePath: image.path,
           label: label,
           accuracy: confidence,
-          allResults: [ClassifierCategory(label, confidence)],
+          allResults: predictions
+              .map((p) => ClassifierCategory(p['label'], p['confidence']))
+              .toList(),
           timestamp: DateTime.now(),
           modelName: modelProvider.selectedOnlineModel.name,
         );
