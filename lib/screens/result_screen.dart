@@ -121,7 +121,7 @@ class ResultScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      ...allResults.take(4).map((result) => _buildResultProgressBar(result)),
+                      ...allResults.map((result) => _buildResultProgressBar(result)),
                     ],
                   ),
                 ),
