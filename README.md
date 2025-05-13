@@ -20,7 +20,7 @@ Nous avions alors aux débuts une application codé par S. Cruz-Lara qui permet 
 
 J'ai alors pris pas mal de temps à chercher une API qui fonctionne sous Gradio hébergé par HuggingFace qui permet de prendre une image en entrée et envoyer du texte en sortie. J'ai alors énormément utilisé la base de S. Cruz-Lara afin de tester les différentes API que je trouvais au fur et à mesure.
 
-Pour autant, je ne comptais pas partir sur cette base pour l'affichage, j'ai donc repris l'affichage du [premier projet de développement mobile](https://github.com/IUTNancyCharlemagne/plant-recogniser-min-Eylexander).
+Pour autant, je ne comptais pas partir sur cette base pour l'affichage, j'ai donc repris l'affichage du [premier projet de développement mobile](https://github.com/Eylexander/flutter_plant_recogniser).
 
 ## Le code
 
